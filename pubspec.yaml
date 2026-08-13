@@ -28,6 +28,11 @@ dependencies:
   # Permissions
   permission_handler: ^11.4.0
 
+  # Biometric & Security
+  local_auth: ^2.2.0
+  local_auth_android: ^1.0.0
+  local_auth_ios: ^1.0.0
+
   # Connectivity
   connectivity_plus: ^5.0.0
   package_info_plus: ^5.0.0

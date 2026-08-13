@@ -11,6 +11,8 @@ import 'screen_automation_service.dart';
 import 'file_operation_service.dart';
 import 'web_operation_service.dart';
 import 'task_scheduling_service.dart';
+import 'biometric_service.dart';
+import 'settings_service.dart';
 
 /// Agent initialization and setup
 /// Centralizes initialization of all agent services in the correct order
@@ -37,6 +39,8 @@ class AgentSetup {
   late FileOperationService _fileOps;
   late WebOperationService _webOps;
   late TaskSchedulingService _taskScheduling;
+  late BiometricService _biometric;
+  late SettingsService _settings;
 
   // Getters for services
   AgentCore get agentCore => _agentCore;
@@ -51,6 +55,8 @@ class AgentSetup {
   FileOperationService get fileOps => _fileOps;
   WebOperationService get webOps => _webOps;
   TaskSchedulingService get taskScheduling => _taskScheduling;
+  BiometricService get biometric => _biometric;
+  SettingsService get settings => _settings;
 
   bool get isInitialized => _isInitialized;
 
@@ -124,6 +130,18 @@ class AgentSetup {
       _taskScheduling = TaskSchedulingService();
       await _taskScheduling.init();
       developer.log('✓ TaskSchedulingService initialized', name: 'AgentSetup');
+
+      // Step 10: Initialize biometric authentication
+      developer.log('Initializing Biometric Service...', name: 'AgentSetup');
+      _biometric = BiometricService();
+      await _biometric.init();
+      developer.log('✓ BiometricService initialized', name: 'AgentSetup');
+
+      // Step 11: Initialize settings management
+      developer.log('Initializing Settings Service...', name: 'AgentSetup');
+      _settings = SettingsService();
+      await _settings.init();
+      developer.log('✓ SettingsService initialized', name: 'AgentSetup');
 
       _isInitialized = true;
       developer.log('Agent Cypher initialization complete!', name: 'AgentSetup');
