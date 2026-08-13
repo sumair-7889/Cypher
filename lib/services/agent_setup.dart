@@ -10,6 +10,7 @@ import 'diagnostics_service.dart';
 import 'screen_automation_service.dart';
 import 'file_operation_service.dart';
 import 'web_operation_service.dart';
+import 'task_scheduling_service.dart';
 
 /// Agent initialization and setup
 /// Centralizes initialization of all agent services in the correct order
@@ -35,6 +36,7 @@ class AgentSetup {
   late ScreenAutomationService _screenService;
   late FileOperationService _fileOps;
   late WebOperationService _webOps;
+  late TaskSchedulingService _taskScheduling;
 
   // Getters for services
   AgentCore get agentCore => _agentCore;
@@ -48,6 +50,7 @@ class AgentSetup {
   ScreenAutomationService get screenService => _screenService;
   FileOperationService get fileOps => _fileOps;
   WebOperationService get webOps => _webOps;
+  TaskSchedulingService get taskScheduling => _taskScheduling;
 
   bool get isInitialized => _isInitialized;
 
@@ -115,6 +118,12 @@ class AgentSetup {
       developer.log('Initializing Web Operations...', name: 'AgentSetup');
       _webOps = WebOperationService();
       developer.log('✓ WebOperationService initialized', name: 'AgentSetup');
+
+      // Step 9: Initialize task scheduling
+      developer.log('Initializing Task Scheduling...', name: 'AgentSetup');
+      _taskScheduling = TaskSchedulingService();
+      await _taskScheduling.init();
+      developer.log('✓ TaskSchedulingService initialized', name: 'AgentSetup');
 
       _isInitialized = true;
       developer.log('Agent Cypher initialization complete!', name: 'AgentSetup');
