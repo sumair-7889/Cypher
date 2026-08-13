@@ -8,6 +8,8 @@ import 'user_memory_service.dart';
 import 'permission_service.dart';
 import 'diagnostics_service.dart';
 import 'screen_automation_service.dart';
+import 'file_operation_service.dart';
+import 'web_operation_service.dart';
 
 /// Agent initialization and setup
 /// Centralizes initialization of all agent services in the correct order
@@ -31,6 +33,8 @@ class AgentSetup {
   late PermissionService _permissionService;
   late DiagnosticsService _diagnosticsService;
   late ScreenAutomationService _screenService;
+  late FileOperationService _fileOps;
+  late WebOperationService _webOps;
 
   // Getters for services
   AgentCore get agentCore => _agentCore;
@@ -42,6 +46,8 @@ class AgentSetup {
   PermissionService get permissionService => _permissionService;
   DiagnosticsService get diagnosticsService => _diagnosticsService;
   ScreenAutomationService get screenService => _screenService;
+  FileOperationService get fileOps => _fileOps;
+  WebOperationService get webOps => _webOps;
 
   bool get isInitialized => _isInitialized;
 
@@ -99,6 +105,16 @@ class AgentSetup {
       developer.log('Initializing Diagnostics...', name: 'AgentSetup');
       _diagnosticsService = DiagnosticsService();
       developer.log('✓ DiagnosticsService initialized', name: 'AgentSetup');
+
+      // Step 7: Initialize file operations
+      developer.log('Initializing File Operations...', name: 'AgentSetup');
+      _fileOps = FileOperationService();
+      developer.log('✓ FileOperationService initialized', name: 'AgentSetup');
+
+      // Step 8: Initialize web operations
+      developer.log('Initializing Web Operations...', name: 'AgentSetup');
+      _webOps = WebOperationService();
+      developer.log('✓ WebOperationService initialized', name: 'AgentSetup');
 
       _isInitialized = true;
       developer.log('Agent Cypher initialization complete!', name: 'AgentSetup');

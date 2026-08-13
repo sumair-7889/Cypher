@@ -10,6 +10,8 @@ import 'screen_automation_service.dart';
 import 'verification_service.dart';
 import 'task_executor.dart';
 import 'ai_service.dart';
+import 'file_operation_service.dart';
+import 'web_operation_service.dart';
 
 class ActionHandler {
   final AppLauncherService _appLauncher = AppLauncherService();
@@ -20,9 +22,13 @@ class ActionHandler {
   final ShizukuService _shizuku = ShizukuService();
   final ScreenAutomationService _screenAutomation = ScreenAutomationService();
   final VerificationService _verification = VerificationService();
+  final FileOperationService _fileOps = FileOperationService();
+  final WebOperationService _webOps = WebOperationService();
 
   ShizukuService get shizuku => _shizuku;
   ScreenAutomationService get screenAutomation => _screenAutomation;
+  FileOperationService get fileOps => _fileOps;
+  WebOperationService get webOps => _webOps;
 
   /// The currently running task executor, if any
   TaskExecutor? _currentExecutor;
@@ -208,6 +214,98 @@ class ActionHandler {
           result = await _currentExecutor!.executeTask(goal);
           success = !result.startsWith('Error');
           _currentExecutor = null;
+          break;
+
+        // ─── File Operations ────────────────────────
+
+        case 'read_file':
+          result = await _fileOps.readTextFile(
+            action.params['path'] as String? ?? '',
+          );
+          success = !result.startsWith('Error');
+          break;
+
+        case 'write_file':
+          success = await _fileOps.writeTextFile(
+            action.params['path'] as String? ?? '',
+            action.params['content'] as String? ?? '',
+          );
+          result = success ? 'File written successfully' : 'Could not write file';
+          break;
+
+        case 'list_directory':
+          final files = await _fileOps.listDirectory(
+            action.params['path'] as String? ?? '',
+          );
+          result = 'Found ${files.length} items:\n${files.map((f) => '${f.isDirectory ? "[DIR]" : "[FILE]"} ${f.name}').join("\n")}';
+          success = true;
+          break;
+
+        case 'create_directory':
+          success = await _fileOps.createDirectory(
+            action.params['path'] as String? ?? '',
+          );
+          result = success ? 'Directory created' : 'Could not create directory';
+          break;
+
+        case 'copy_file':
+          success = await _fileOps.copyFile(
+            action.params['source'] as String? ?? '',
+            action.params['destination'] as String? ?? '',
+          );
+          result = success ? 'File copied' : 'Could not copy file';
+          break;
+
+        case 'move_file':
+          success = await _fileOps.moveFile(
+            action.params['source'] as String? ?? '',
+            action.params['destination'] as String? ?? '',
+          );
+          result = success ? 'File moved' : 'Could not move file';
+          break;
+
+        case 'delete_file':
+          success = await _fileOps.deleteFile(
+            action.params['path'] as String? ?? '',
+          );
+          result = success ? 'File deleted' : 'Could not delete file';
+          break;
+
+        case 'search_files':
+          final searchResults = await _fileOps.searchFiles(
+            action.params['directory'] as String? ?? '',
+            action.params['query'] as String? ?? '',
+          );
+          result = 'Found ${searchResults.length} files:\n${searchResults.map((f) => f.name).join("\n")}';
+          success = true;
+          break;
+
+        // ─── Web Operations ────────────────────────
+
+        case 'search':
+          final engine = action.params['engine'] as String? ?? 'google';
+          success = await _webOps.search(
+            action.params['query'] as String? ?? '',
+            engine: engine,
+          );
+          result = success ? 'Search opened in browser' : 'Could not open search';
+          break;
+
+        case 'open_url':
+          success = await _webOps.openUrl(
+            action.params['url'] as String? ?? '',
+          );
+          result = success ? 'URL opened in browser' : 'Could not open URL';
+          break;
+
+        case 'get_page_content':
+          result = await _webOps.getPageContent();
+          success = result.isNotEmpty;
+          break;
+
+        case 'navigate_back':
+          success = await _webOps.goBack();
+          result = success ? 'Navigated back' : 'Could not go back';
           break;
 
         default:
