@@ -8,6 +8,7 @@ import 'config/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'overlay_main.dart';
+import 'services/agent_setup.dart';
 
 @pragma("vm:entry-point")
 void overlayMain() {
@@ -44,6 +45,16 @@ void Function(String task)? onOverlayTask;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Agent Cypher services
+  try {
+    final agent = AgentSetup();
+    await agent.initialize();
+    log('Agent Cypher initialization successful', name: 'main');
+  } catch (e) {
+    log('Agent Cypher initialization failed: $e', name: 'main', level: 2000);
+    // Continue anyway - some features may still work
+  }
 
   if (FeatureFlags.floatingOverlayEnabled) {
     FlutterOverlayWindow.overlayListener.listen((event) {
