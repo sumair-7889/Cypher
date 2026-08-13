@@ -5,7 +5,6 @@ import '../main.dart';
 import '../services/ai_service.dart';
 import '../services/shizuku_service.dart';
 import '../services/screen_automation_service.dart';
-import '../services/telegram_service.dart';
 import 'task_history_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
@@ -15,14 +14,12 @@ class SettingsScreen extends StatefulWidget {
   final AiService aiService;
   final ShizukuService shizukuService;
   final ScreenAutomationService screenAutomationService;
-  final TelegramService telegramService;
 
   const SettingsScreen({
     super.key,
     required this.aiService,
     required this.shizukuService,
     required this.screenAutomationService,
-    required this.telegramService,
   });
 
   @override
@@ -34,9 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   late TextEditingController _apiKeyController;
   late TextEditingController _baseUrlController;
   late TextEditingController _modelController;
-  late TextEditingController _telegramTokenController;
   bool _obscureKey = true;
-  bool _telegramEnabled = false;
   double _maxSteps = 15;
   bool _disableMaxSteps = false;
   late TextEditingController _maxTokensController;
@@ -55,10 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     _apiKeyController = TextEditingController(text: widget.aiService.apiKey);
     _baseUrlController = TextEditingController(text: widget.aiService.baseUrl);
     _modelController = TextEditingController(text: widget.aiService.model);
-    _telegramTokenController = TextEditingController(
-      text: widget.telegramService.botToken,
-    );
-    _telegramEnabled = widget.telegramService.isEnabled;
     _maxSteps = widget.aiService.rawMaxSteps.toDouble();
     _disableMaxSteps = widget.aiService.disableMaxSteps;
     _temperature = widget.aiService.temperature;
@@ -72,7 +63,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     _apiKeyController.addListener(_autoSave);
     _baseUrlController.addListener(_autoSave);
     _modelController.addListener(_autoSave);
-    _telegramTokenController.addListener(_autoSave);
     _maxTokensController.addListener(_autoSave);
 
     _checkPermissions();
@@ -98,12 +88,10 @@ class _SettingsScreenState extends State<SettingsScreen>
     _apiKeyController.removeListener(_autoSave);
     _baseUrlController.removeListener(_autoSave);
     _modelController.removeListener(_autoSave);
-    _telegramTokenController.removeListener(_autoSave);
     _maxTokensController.removeListener(_autoSave);
     _apiKeyController.dispose();
     _baseUrlController.dispose();
     _modelController.dispose();
-    _telegramTokenController.dispose();
     _maxTokensController.dispose();
     super.dispose();
   }
@@ -152,22 +140,12 @@ class _SettingsScreenState extends State<SettingsScreen>
       model: _modelController.text.trim(),
     );
 
-    widget.telegramService.saveSettings(
-      botToken: _telegramTokenController.text.trim(),
-      isEnabled: _telegramEnabled,
-    );
-
     widget.aiService.saveMaxSteps(_maxSteps.toInt());
     widget.aiService.saveDisableMaxSteps(_disableMaxSteps);
     widget.aiService.saveAdvancedSettings(
       temperature: _temperature,
       maxTokens: int.tryParse(_maxTokensController.text) ?? 1024,
-      useScreenCompression: _useScreenCompression,
-      useSystemPrompt: _useSystemPrompt,
-    );
-  }
-
-  Future<void> _fetchModels() async {
+      useScid> _fetchModels() async {
     final baseUrl = _baseUrlController.text.trim();
     final apiKey = _apiKeyController.text.trim();
 
@@ -750,34 +728,6 @@ class _SettingsScreenState extends State<SettingsScreen>
             ],
           ),
 
-          // 5. Telegram Remote Access Card
-          _buildSettingsCard(
-            icon: Icons.send_and_archive_outlined,
-            title: 'Telegram Remote Access',
-            subtitle: 'Control your agent remotely from anywhere',
-            isDark: isDark,
-            children: [
-              TextField(
-                controller: _telegramTokenController,
-                decoration: _buildInputDecoration(
-                  labelText: 'Telegram Bot Token',
-                  hintText: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
-                  prefixIcon: const Icon(Icons.send_rounded, size: 18),
-                ),
-              ),
-              SwitchListTile(
-                title: const Text('Enable Telegram Bot'),
-                subtitle: const Text('Allows remote control via Telegram chat'),
-                value: _telegramEnabled,
-                onChanged: (val) {
-                  setState(() => _telegramEnabled = val);
-                  _autoSave();
-                },
-                contentPadding: EdgeInsets.zero,
-              ),
-            ],
-          ),
-
           // 6. Accessibility Screen Control Card
           _buildSettingsCard(
             icon: Icons.visibility_outlined,
@@ -822,11 +772,11 @@ class _SettingsScreenState extends State<SettingsScreen>
             ],
           ),
 
-          // 9. About / Links Card
+          // 8. About / Links Card
           _buildSettingsCard(
             icon: Icons.info_outline_rounded,
-            title: 'About PrivateAgent',
-            subtitle: 'Resources and repository access',
+            title: 'About Agent Cypher',
+            subtitle: 'Version 1.0.0 - An Assistant for Sumair',
             isDark: isDark,
             children: [
               ListTile(
@@ -836,40 +786,17 @@ class _SettingsScreenState extends State<SettingsScreen>
                 leading: const Icon(Icons.code_rounded),
                 onTap: () {
                   launchUrl(
-                    Uri.parse('https://github.com/orailnoor/private-agent'),
+                    Uri.parse('https://github.com/cypherghost/agent-cypher'),
                     mode: LaunchMode.externalApplication,
                   );
                 },
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Orailnoor on YouTube'),
-                subtitle: const Text('Subscribe for tutorials and updates'),
-                leading: const Icon(
-                  Icons.play_circle_fill_rounded,
-                  color: Colors.red,
-                ),
-                onTap: () {
-                  launchUrl(
-                    Uri.parse('https://www.youtube.com/orailnoor'),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Tech Jarves on YouTube'),
-                subtitle: const Text('Subscribe for tutorials and updates'),
-                leading: const Icon(
-                  Icons.play_circle_fill_rounded,
-                  color: Colors.red,
-                ),
-                onTap: () {
-                  launchUrl(
-                    Uri.parse('https://www.youtube.com/techjarves'),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
+                title: const Text('Created by Cypher Ghost'),
+                subtitle: const Text('Personal AI assistant for Sumair'),
+                leading: const Icon(Icons.person_rounded),
+                onTap: () {},
               ),
             ],
           ),

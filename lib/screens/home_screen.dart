@@ -8,7 +8,6 @@ import '../services/ai_service.dart';
 import '../services/action_handler.dart';
 import '../services/voice_service.dart';
 import '../widgets/message_bubble.dart';
-import '../services/telegram_service.dart';
 import '../services/chat_history_service.dart';
 import '../services/notification_service.dart';
 import 'settings_screen.dart';
@@ -31,7 +30,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ActionHandler _actionHandler = ActionHandler();
   final VoiceService _voiceService = VoiceService();
   final NotificationService _notificationService = NotificationService();
-  late final TelegramService _telegramService;
 
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -51,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _telegramService = TelegramService(_actionHandler, _aiService);
     _initServices();
     _startOverlayHistorySync();
     // Register as the handler for overlay bubble tasks
@@ -62,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _aiService.init();
     await _notificationService.requestPermission();
     await _voiceService.init();
-    await _telegramService.init();
     await _actionHandler.shizuku.checkAvailability();
 
     if (mounted) {
@@ -161,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           action,
           aiService: _aiService,
           onProgress: (msg) {
-            developer.log('Task progress: $msg', name: 'PrivateAgent');
+            developer.log('Task progress: $msg', name: 'AgentCypher');
             _sendOverlayEvent('OVERLAY_PROGRESS', msg);
             if (mounted) {
               setState(() {
@@ -245,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!await FlutterOverlayWindow.isActive()) {
       await FlutterOverlayWindow.showOverlay(
         enableDrag: true,
-        overlayTitle: 'PrivateAgent',
+        overlayTitle: 'Agent Cypher',
         overlayContent: 'Performing task...',
         flag: OverlayFlag.focusPointer,
         alignment: OverlayAlignment.centerRight,
@@ -354,7 +350,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _textController.dispose();
     _scrollController.dispose();
     _voiceService.dispose();
-    _telegramService.dispose();
     super.dispose();
   }
 
@@ -435,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (await FlutterOverlayWindow.isActive()) return;
       await FlutterOverlayWindow.showOverlay(
         enableDrag: true,
-        overlayTitle: "PrivateAgent",
+        overlayTitle: "Agent Cypher",
         overlayContent: _isLoading
             ? "Performing task..."
             : "Floating Assistant",
@@ -534,7 +529,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     aiService: _aiService,
                     shizukuService: _actionHandler.shizuku,
                     screenAutomationService: _actionHandler.screenAutomation,
-                    telegramService: _telegramService,
                   ),
                 ),
               );
@@ -606,7 +600,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 shizukuService: _actionHandler.shizuku,
                                 screenAutomationService:
                                     _actionHandler.screenAutomation,
-                                telegramService: _telegramService,
                               ),
                             ),
                           );
@@ -955,7 +948,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     aiService: _aiService,
                     shizukuService: _actionHandler.shizuku,
                     screenAutomationService: _actionHandler.screenAutomation,
-                    telegramService: _telegramService,
                   ),
                 ),
               );

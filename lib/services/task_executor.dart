@@ -197,10 +197,10 @@ Rules:
         }
       }
     } else {
-      // If no shortcut is used, and we are currently inside the PrivateAgent app,
+      // If no shortcut is used, and we are currently inside the Agent Cypher app,
       // press Home so the AI doesn't see its own chat bubbles and get confused by the task text.
       final currentPkg = await _screenService.getCurrentPackage();
-      if (currentPkg == 'com.orailnoor.privateagent') {
+      if (currentPkg == 'com.cypherghost.agentcypher') {
         _report('Moving to background...');
         await _screenService.pressHome();
         await Future.delayed(const Duration(milliseconds: 1500));
@@ -270,7 +270,7 @@ CURRENT SCREEN TEXT DUMP:
 $screenContent$prevResultStr$failureHint
 Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. What is the next action?''';
 
-      developer.log('=== AI PROMPT ===\n$prompt', name: 'PrivateAgent');
+      developer.log('=== AI PROMPT ===\n$prompt', name: 'AgentCypher');
 
       // 3. Get AI response — races against cancel signal so Stop works immediately
       String response;

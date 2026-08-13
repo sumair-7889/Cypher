@@ -228,7 +228,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Configuration validated! Launching PrivateAgent...',
+                'Configuration validated! Launching Agent Cypher...',
               ),
               backgroundColor: Colors.indigoAccent,
               behavior: SnackBarBehavior.floating,
@@ -631,7 +631,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const Spacer(flex: 2),
           // Clean Title
           Text(
-            'PrivateAgent',
+            'Agent Cypher',
             style: TextStyle(
               fontSize: 38,
               fontWeight: FontWeight.w900,
@@ -641,7 +641,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Your local, secure, and smart mobile companion. PrivateAgent can navigate apps, perform operations, and speak with you.',
+            'Your personal AI assistant for Sumair. Agent Cypher can navigate apps, perform operations, and speak with you.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
@@ -829,7 +829,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   const SizedBox(height: 12),
                   _buildPermissionCard(
                     'Display Over Other Apps (Floating Bubble)',
-                    'Allows PrivateAgent to show a floating overlay bubble when backgrounded or executing a task so you can monitor progress and execute actions.',
+                    'Allows Agent Cypher to show a floating overlay bubble when backgrounded or executing a task so you can monitor progress and execute actions.',
                     Icons.layers_rounded,
                     _isOverlayGranted,
                     _requestOverlayPermission,
@@ -840,7 +840,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 _buildSectionHeader('OPTIONAL', isDark),
                 _buildPermissionCard(
                   'Notifications',
-                  'Allows PrivateAgent to show ongoing tasks, alerts, and execution updates in your notification tray.',
+                  'Allows Agent Cypher to show ongoing tasks, alerts, and execution updates in your notification tray.',
                   Icons.notifications_rounded,
                   _isNotificationsGranted,
                   () => _requestPermission(Permission.notification),
