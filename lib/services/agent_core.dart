@@ -87,24 +87,43 @@ For normal conversations, just respond with plain text.
   }
 
   /// Parse action JSON from AI response
+  /// Supports both direct JSON and JSON within text
   AgentAction? _parseActionFromResponse(String response) {
     try {
-      // Look for JSON object in response
+      // First, try direct JSON parsing (most strict)
+      try {
+        final data = jsonDecode(response);
+        if (data is Map<String, dynamic> && data.containsKey('action')) {
+          return _buildActionFromJson(data);
+        }
+      } catch (_) {}
+
+      // Then try to extract JSON from response text
       final jsonMatch = RegExp(r'\{[^{}]*"action"[^{}]*\}').firstMatch(response);
-      if (jsonMatch == null) return null;
+      if (jsonMatch != null) {
+        final jsonStr = jsonMatch.group(0)!;
+        try {
+          final data = jsonDecode(jsonStr);
+          if (data is Map<String, dynamic>) {
+            return _buildActionFromJson(data);
+          }
+        } catch (_) {}
+      }
 
-      final jsonStr = jsonMatch.group(0)!;
-      final data = jsonDecode(jsonStr);
-
-      return AgentAction(
-        id: 'action_${DateTime.now().millisecondsSinceEpoch}',
-        action: data['action'] ?? 'unknown',
-        params: Map<String, dynamic>.from(data['params'] ?? {}),
-        response: data['response'] ?? '',
-      );
+      // No action found - return null to indicate this is just text response
+      return null;
     } catch (e) {
       return null;
     }
+  }
+
+  /// Build AgentAction from parsed JSON
+  AgentAction _buildActionFromJson(Map<String, dynamic> data) {
+    return AgentAction(
+      action: data['action'] as String? ?? 'general_query',
+      params: Map<String, dynamic>.from(data['params'] as Map? ?? {}),
+      response: data['response'] as String? ?? '',
+    );
   }
 
   /// Plan a multi-step task execution sequence
@@ -144,8 +163,15 @@ Respond with a JSON array of steps:
 
   /// Check permissions and safety constraints before execution
   Future<Map<String, dynamic>> checkSafety(AgentAction action) async {
-    // Always allow safe actions
-    final safeActions = ['read_screen', 'read_notifications', 'take_screenshot', 'read_file'];
+    // Always allow safe, read-only actions
+    final safeActions = [
+      'read_screen',
+      'read_notifications',
+      'take_screenshot',
+      'read_file',
+      'search_contact',
+      'general_query'
+    ];
     if (safeActions.contains(action.action)) {
       return {
         'permitted': true,
@@ -154,8 +180,15 @@ Respond with a JSON array of steps:
       };
     }
 
-    // Require confirmation for sensitive actions
-    final sensitiveActions = ['make_call', 'send_sms', 'delete_file', 'execute_task'];
+    // Require confirmation for sensitive actions that modify state
+    final sensitiveActions = [
+      'make_call',
+      'send_sms',
+      'delete_file',
+      'execute_task',
+      'send_email',
+      'run_adb_command'
+    ];
     if (sensitiveActions.contains(action.action)) {
       return {
         'permitted': true,
@@ -164,6 +197,7 @@ Respond with a JSON array of steps:
       };
     }
 
+    // Allow most other actions with medium risk
     return {
       'permitted': true,
       'requiresConfirmation': false,
@@ -171,15 +205,13 @@ Respond with a JSON array of steps:
     };
   }
 
-  /// Route action to appropriate executor (to be called by ActionHandler)
-  Future<String> routeAction(AgentAction action) async {
-    return 'route:${action.action}';
-  }
-
   /// Verify task completion
+  /// Returns true if the result indicates success
   Future<bool> verifyCompletion(AgentAction action, String result) async {
     // Simple heuristic: if result doesn't start with "Error", consider it successful
-    return !result.startsWith('Error');
+    // In a real system, this would involve re-reading device state to confirm
+    final success = !result.startsWith('Error');
+    return success;
   }
 
   /// Handle retry with exponential backoff
@@ -188,7 +220,7 @@ Respond with a JSON array of steps:
     int attempt, {
     Duration baseDelay = const Duration(seconds: 1),
   }) async {
-    final delayMs = baseDelay.inMilliseconds * (2 ^ (attempt - 1));
+    final delayMs = baseDelay.inMilliseconds * (pow(2, (attempt - 1)).toInt());
     await Future.delayed(Duration(milliseconds: delayMs.toInt()));
     return 'Retry attempt $attempt';
   }
@@ -197,6 +229,17 @@ Respond with a JSON array of steps:
   String? getActiveProviderName() {
     return _providerManager.getActiveProvider()?.name;
   }
+
+  /// Get conversation history
+  List<Map<String, dynamic>> getConversationHistory() {
+    return List.unmodifiable(_conversationHistory);
+  }
+
+  /// Clear conversation history
+  void clearConversationHistory() {
+    _conversationHistory.clear();
+  }
+}
 
   /// Test active provider connection
   Future<bool> testActiveProvider() async {

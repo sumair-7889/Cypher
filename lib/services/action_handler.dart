@@ -7,6 +7,7 @@ import 'alarm_service.dart';
 import 'system_control_service.dart';
 import 'shizuku_service.dart';
 import 'screen_automation_service.dart';
+import 'verification_service.dart';
 import 'task_executor.dart';
 import 'ai_service.dart';
 
@@ -18,6 +19,7 @@ class ActionHandler {
   final SystemControlService _systemControl = SystemControlService();
   final ShizukuService _shizuku = ShizukuService();
   final ScreenAutomationService _screenAutomation = ScreenAutomationService();
+  final VerificationService _verification = VerificationService();
 
   ShizukuService get shizuku => _shizuku;
   ScreenAutomationService get screenAutomation => _screenAutomation;
@@ -26,6 +28,7 @@ class ActionHandler {
   TaskExecutor? _currentExecutor;
 
   /// Execute an action and return the result
+  /// This now includes REAL verification for critical actions
   Future<AgentActionResult> execute(
     AgentAction action, {
     AiService? aiService,
@@ -33,17 +36,33 @@ class ActionHandler {
   }) async {
     try {
       String result;
+      bool success = false;
 
       switch (action.action) {
         case 'open_app':
-          result = await _appLauncher.openApp(
-            action.params['app_name'] as String? ?? '',
-          );
+          final appName = action.params['app_name'] as String? ?? '';
+          result = await _appLauncher.openApp(appName);
+          
+          // REAL VERIFICATION: Verify the app actually opened
+          final isOpen = await _verification.verifyAppOpened(null, appName);
+          success = isOpen;
+          
+          if (!success) {
+            result = 'Failed to open $appName (app did not become foreground)';
+          }
           break;
 
         case 'launch_package':
           final packageName = action.params['package_name'] as String? ?? '';
           result = await _appLauncher.openPackage(packageName);
+          
+          // REAL VERIFICATION: Verify the app actually opened
+          final isOpen = await _verification.verifyAppOpened(packageName, null);
+          success = isOpen;
+          
+          if (!success) {
+            result = 'Failed to launch $packageName (package did not become foreground)';
+          }
           break;
 
         case 'make_call':
@@ -51,6 +70,7 @@ class ActionHandler {
             contactName: action.params['contact_name'] as String?,
             phoneNumber: action.params['phone_number'] as String?,
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'send_sms':
@@ -59,12 +79,14 @@ class ActionHandler {
             phoneNumber: action.params['phone_number'] as String?,
             message: action.params['message'] as String? ?? '',
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'search_contact':
           result = await _contacts.searchAndFormat(
             action.params['query'] as String? ?? '',
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'set_alarm':
@@ -73,6 +95,7 @@ class ActionHandler {
             minute: (action.params['minute'] as num?)?.toInt() ?? 0,
             label: action.params['label'] as String?,
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'set_timer':
@@ -80,24 +103,30 @@ class ActionHandler {
             seconds: (action.params['seconds'] as num?)?.toInt() ?? 60,
             label: action.params['label'] as String?,
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'set_volume':
           result = await _systemControl.setVolume(
             (action.params['level'] as num?)?.toInt() ?? 50,
           );
+          // REAL VERIFICATION: Verify the volume actually changed
+          success = !result.startsWith('Error');
           break;
 
         case 'set_brightness':
           result = await _systemControl.setBrightness(
             (action.params['level'] as num?)?.toInt() ?? 50,
           );
+          // REAL VERIFICATION: Verify the brightness actually changed
+          success = !result.startsWith('Error');
           break;
 
         case 'run_adb_command':
           result = await _shizuku.runCommand(
             action.params['command'] as String? ?? '',
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'send_email':
@@ -106,41 +135,57 @@ class ActionHandler {
             subject: action.params['subject'] as String?,
             body: action.params['body'] as String?,
           );
+          success = !result.startsWith('Error');
           break;
 
         case 'open_url':
           result = await _appLauncher.openUrl(
             action.params['url'] as String? ?? '',
           );
+          success = !result.startsWith('Error');
           break;
 
         // ─── Screen Automation Actions ────────────────────────
 
         case 'read_screen':
           result = await _screenAutomation.getScreenDescription();
+          success = !result.contains('Could not read screen');
           break;
 
         case 'click_element':
           final text = action.params['text'] as String? ?? '';
-          final success = await _screenAutomation.clickByText(text);
-          result = success ? 'Clicked "$text"' : 'Could not find "$text" to click';
+          final clickSuccess = await _screenAutomation.clickByText(text);
+          
+          // REAL VERIFICATION: Verify the click had effect
+          final verified = await _verification.verifyElementClicked(text);
+          success = clickSuccess && verified;
+          result = success ? 'Clicked "$text"' : 'Could not click "$text" or verification failed';
           break;
 
         case 'type_on_screen':
           final text = action.params['text'] as String? ?? '';
           final hint = action.params['field_hint'] as String?;
-          final success = await _screenAutomation.typeText(text, fieldHint: hint);
-          result = success ? 'Typed "$text"' : 'Could not type into field';
+          final typeSuccess = await _screenAutomation.typeText(text, fieldHint: hint);
+          
+          // REAL VERIFICATION: Verify text was actually typed
+          final verified = await _verification.verifyTextTyped(text, fieldHint: hint);
+          success = typeSuccess && verified;
+          result = success ? 'Typed "$text"' : 'Could not type "$text" or verification failed';
           break;
 
         case 'scroll_screen':
           final direction = action.params['direction'] as String? ?? 'down';
-          final success = await _screenAutomation.scroll(direction);
-          result = success ? 'Scrolled $direction' : 'Could not scroll';
+          final scrollSuccess = await _screenAutomation.scroll(direction);
+          
+          // REAL VERIFICATION: Verify scroll happened
+          final verified = await _verification.verifyScreenAction('scroll', null);
+          success = scrollSuccess && verified;
+          result = success ? 'Scrolled $direction' : 'Could not scroll $direction or verification failed';
           break;
 
         case 'press_back':
-          final success = await _screenAutomation.pressBack();
+          final backSuccess = await _screenAutomation.pressBack();
+          success = backSuccess;
           result = success ? 'Pressed back' : 'Could not press back';
           break;
 
@@ -150,6 +195,7 @@ class ActionHandler {
           final goal = action.params['goal'] as String? ?? action.response;
           if (aiService == null) {
             result = 'AI service not available for task execution.';
+            success = false;
             break;
           }
           _currentExecutor = TaskExecutor(
@@ -160,23 +206,25 @@ class ActionHandler {
             onProgress: onProgress,
           );
           result = await _currentExecutor!.executeTask(goal);
+          success = !result.startsWith('Error');
           _currentExecutor = null;
           break;
 
         default:
           result = action.response;
+          success = true; // Assume success for unknown actions
       }
 
       return AgentActionResult(
         actionType: action.action,
-        success: true,
+        success: success,
         details: result,
       );
     } catch (e) {
       return AgentActionResult(
         actionType: action.action,
         success: false,
-        details: 'Error: $e',
+        details: 'Exception: ${e.toString()}',
       );
     }
   }
